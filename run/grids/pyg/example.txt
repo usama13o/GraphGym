@@ -4,10 +4,13 @@
 # Feel free to add '#' to add comments
 
 
-gnn.layers_pre_mp l_pre [1,2]
-gnn.layers_mp l_mp [2,4,6]
-gnn.layers_post_mp l_post [1,2]
-gnn.stage_type stage ['stack','skipsum','skipconcat']
-gnn.dim_inner dim [64,128,256]
-optim.base_lr lr [0.001,0.01]
-optim.max_epoch epoch [200,800,1600]
+# gnn.layers_pre_mp l_pre [1,2]
+# gnn.layers_mp l_mp [4,6,12]
+# gnn.layer_type l_typ ['gcnconv','ginconv','sageconv','gatconv']
+# gnn.layers_post_mp l_post [1,2]
+# gnn.stage_type stage ['stack','skipsum','skipconcat']
+# gnn.dim_inner dim [128,256,512]
+# optim.base_lr lr [0.001,0.01]
+optim.max_epoch epoch [300,600,1000]
+
+dataset.name dataset ['pathmnist','retinamnist','bloodmnist','octmnist','chestmnist','dermamnist','breastmnist']

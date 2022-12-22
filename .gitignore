@@ -3,3 +3,16 @@ run/datasets/data/
 **/__pycache__/
 **/.ipynb_checkpoints
 .idea/
+*.yaml
+**/results
+**run/results/*
+*.csv
+*.json
+*.pkl
+*.h5
+*.hdf5
+*.log
+*.pyc
+*.yaml_done
+*events.out.tfevents.*
+*.ckpt

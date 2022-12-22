@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
-CONFIG=example_graph_cluster
+CONFIG=example_graph_cluster_copy
 GRID=example_cluster
 REPEAT=1
-MAX_JOBS=3
+MAX_JOBS=2
 MAIN=main
 
 # generate configs (after controlling computational budget)

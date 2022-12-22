@@ -1,0 +1,16 @@
+# Format for each row: name in config.py; alias; range to search
+# No spaces, except between these 3 fields
+# Line breaks are used to union different grid search spaces
+# Feel free to add '#' to add comments
+
+
+# gnn.layers_pre_mp l_pre [1,2]
+gnn.layers_mp l_mp [1,2,4]
+gnn.layer_type l_typ ['sageconv']
+gnn.dropout drop [0.0,0.2,0.8]
+gnn.layers_post_mp l_post [2,3]
+gnn.stage_type stage ['skipsum','skipconcat']
+# gnn.dim_inner dim [256]
+# optim.base_lr lr [0.001,0.01]
+#optim.max_epoch epoch [600]
+#

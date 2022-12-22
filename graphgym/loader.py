@@ -3,6 +3,7 @@ import pickle
 import time
 
 import networkx as nx
+from graphgym.datasets import ImageTOGraphDataset, ImageToClusterHD5
 import torch
 import torch_geometric.transforms as T
 from deepsnap.batch import Batch
@@ -18,8 +19,9 @@ import graphgym.register as register
 from graphgym.config import cfg
 from graphgym.models.transform import (edge_nets, ego_nets, path_len,
                                        remove_node_feature)
+from graphgym.datasets import VAE, ImgToGraph, medmnist_modified,ConcatDataset
 
-
+from medmnist.dataset import PathMNIST, BreastMNIST,OCTMNIST,ChestMNIST,PneumoniaMNIST,DermaMNIST,RetinaMNIST,BloodMNIST,TissueMNIST,OrganAMNIST,OrganCMNIST,OrganSMNIST
 def load_pyg(name, dataset_dir):
     '''
     load pyg format dataset
@@ -27,7 +29,7 @@ def load_pyg(name, dataset_dir):
     :param dataset_dir: data directory
     :return: a list of networkx/deepsnap graphs
     '''
-    dataset_dir = '{}/{}'.format(dataset_dir, name)
+    # dataset_dir = '{}/{}'.format(dataset_dir, name)
     if name in ['Cora', 'CiteSeer', 'PubMed']:
         dataset_raw = Planetoid(dataset_dir, name)
     elif name[:3] == 'TU_':
@@ -67,6 +69,59 @@ def load_pyg(name, dataset_dir):
         dataset_raw = PPI(dataset_dir)
     elif name == 'QM7b':
         dataset_raw = QM7b(dataset_dir)
+    elif name == 'medmnist-path':
+        dataset_raw = medmnist_modified(root=dataset_dir,split="train",download=True,flag="pathmnist",num_classes=9)
+    elif name == 'medmnist-path-cluster':
+        from torchvision import transforms
+        transform = transforms.Compose([
+                    transforms.ToTensor(),
+                    # transforms.RandomResizedCrop((128,128)),
+                    transforms.ConvertImageDtype(torch.float),
+                    transforms.Resize((128,128)),
+                ])
+        vae = VAE(input_height=32, latent_dim=1024)
+        vae = vae.load_from_checkpoint("/home/uz1/projects/GCN/logging/epoch=128-step=45278.ckpt")
+
+        data= PathMNIST(root='/home/uz1/DATA!/medmnist', download=True,split='train',transform=transform)
+
+        dataset_raw = ImageTOGraphDataset(data=data,vae=vae,kmeans="/home/uz1/projects/GCN/kmeans-model-8-medmnist-path.pkl")
+    elif "cluster" in name:
+        dataset_raw = ImageToClusterHD5(data=dataset_dir)
+    elif name =="retinamnist":
+        dataset_train = medmnist_modified(root=dataset_dir,split="train",download=True,flag="retinamnist")
+        dataset_val = medmnist_modified(root=dataset_dir,split="val",download=True,flag="retinamnist")
+        dataset_test = medmnist_modified(root=dataset_dir,split="test",download=True,flag="retinamnist")
+        dataset_raw = ConcatDataset([dataset_train,dataset_val,dataset_test])
+    elif name =="breastmnist":
+        dataset_train = medmnist_modified(root=dataset_dir,split="train",download=True,flag="breastmnist")
+        dataset_val = medmnist_modified(root=dataset_dir,split="val",download=True,flag="breastmnist")
+        dataset_test = medmnist_modified(root=dataset_dir,split="test",download=True,flag="breastmnist")
+        dataset_raw = ConcatDataset([dataset_train,dataset_val,dataset_test])
+    elif name =="chestmnist":
+        dataset_train = medmnist_modified(root=dataset_dir,split="train",download=True,flag="chestmnist")
+        dataset_val = medmnist_modified(root=dataset_dir,split="val",download=True,flag="chestmnist")
+        dataset_test = medmnist_modified(root=dataset_dir,split="test",download=True,flag="chestmnist")
+        dataset_raw = ConcatDataset([dataset_train,dataset_val,dataset_test])
+    elif name =="dermamnist":
+        dataset_train = medmnist_modified(root=dataset_dir,split="train",download=True,flag="dermamnist")
+        dataset_val = medmnist_modified(root=dataset_dir,split="val",download=True,flag="dermamnist")
+        dataset_test = medmnist_modified(root=dataset_dir,split="test",download=True,flag="dermamnist")
+        dataset_raw = ConcatDataset([dataset_train,dataset_val,dataset_test])
+    elif name == "bloodmnist":
+        dataset_train = medmnist_modified(root=dataset_dir,split="train",download=True,flag="bloodmnist")
+        dataset_val = medmnist_modified(root=dataset_dir,split="val",download=True,flag="bloodmnist")
+        dataset_test = medmnist_modified(root=dataset_dir,split="test",download=True,flag="bloodmnist")
+        dataset_raw = ConcatDataset([dataset_train,dataset_val,dataset_test])
+    elif name == "octmnist":
+        dataset_train = medmnist_modified(root=dataset_dir,split="train",download=True,flag="octmnist")
+        dataset_val = medmnist_modified(root=dataset_dir,split="val",download=True,flag="octmnist")
+        dataset_test = medmnist_modified(root=dataset_dir,split="test",download=True,flag="octmnist")
+        dataset_raw = ConcatDataset([dataset_train,dataset_val,dataset_test])
+    elif name =="pathmnist":
+        dataset_train = medmnist_modified(root=dataset_dir,split="train",download=True,flag="pathmnist")
+        dataset_val = medmnist_modified(root=dataset_dir,split="val",download=True,flag="pathmnist")
+        dataset_test = medmnist_modified(root=dataset_dir,split="test",download=True,flag="pathmnist")
+        dataset_raw = ConcatDataset([dataset_train,dataset_val,dataset_test])
     else:
         raise ValueError('{} not support'.format(name))
     graphs = GraphDataset.pyg_to_graphs(dataset_raw)

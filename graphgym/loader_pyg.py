@@ -13,10 +13,17 @@ from torch_geometric.loader import (ClusterLoader, DataLoader,
 from torch_geometric.utils import (index_to_mask, negative_sampling,
                                    to_undirected)
 
+from graphgym.datasets import ImageTOGraphDataset, ImageToClusterHD5
 import graphgym.register as register
 from graphgym.config import cfg
 from graphgym.models.transform import create_link_label, neg_sampling_transform
+from graphgym.datasets import medmnist_modified, medmnist_modified_spltis
 
+from medmnist.dataset import PathMNIST, BreastMNIST,OCTMNIST,ChestMNIST,PneumoniaMNIST,DermaMNIST,RetinaMNIST,BloodMNIST,TissueMNIST,OrganAMNIST,OrganCMNIST,OrganSMNIST
+
+from graphgym.datasets import VAE, ImgToGraph, medmnist_modified
+
+from medmnist.dataset import PathMNIST, BreastMNIST,OCTMNIST,ChestMNIST,PneumoniaMNIST,DermaMNIST,RetinaMNIST,BloodMNIST,TissueMNIST,OrganAMNIST,OrganCMNIST,OrganSMNIST
 
 def planetoid_dataset(name: str) -> Callable:
     return lambda root: Planetoid(root, name)
@@ -39,7 +46,7 @@ def load_pyg(name, dataset_dir):
     Returns: PyG dataset object
 
     """
-    dataset_dir = '{}/{}'.format(dataset_dir, name)
+    # dataset_dir = '{}/{}'.format(dataset_dir, name)
     if name in ['Cora', 'CiteSeer', 'PubMed']:
         dataset = Planetoid(dataset_dir, name)
     elif name[:3] == 'TU_':
@@ -67,6 +74,39 @@ def load_pyg(name, dataset_dir):
         dataset = PPI(dataset_dir)
     elif name == 'QM7b':
         dataset = QM7b(dataset_dir)
+    elif name == 'medmnist-path':
+        train= medmnist_modified(root=dataset_dir,split="train",download=True)
+        val= medmnist_modified(root=dataset_dir,split="val",download=True)
+        test = medmnist_modified(root=dataset_dir,split="test",download=True)
+        dataset = medmnist_modified_spltis(train,val,test)
+    elif name == 'medmnist-path-cluster':
+        from torchvision import transforms
+        transform = transforms.Compose([
+                    transforms.ToTensor(),
+                    # transforms.RandomResizedCrop((128,128)),
+                    transforms.ConvertImageDtype(torch.float),
+                    transforms.Resize((128,128)),
+                ])
+        vae = VAE(input_height=32, latent_dim=1024)
+        vae = vae.load_from_checkpoint("/home/uz1/projects/GCN/logging/epoch=128-step=45278.ckpt")
+
+        train= PathMNIST(root='/home/uz1/DATA!/medmnist', download=True,split='train',transform=transform)
+        val= PathMNIST(root='/home/uz1/DATA!/medmnist', download=True,split='val',transform=transform)
+        test= PathMNIST(root='/home/uz1/DATA!/medmnist', download=True,split='test',transform=transform)
+
+        train= ImageTOGraphDataset(data=train,vae=vae,kmeans="/home/uz1/projects/GCN/kmeans-model-8-medmnist-path.pkl")
+        val= ImageTOGraphDataset(data=val,vae=vae,kmeans="/home/uz1/projects/GCN/kmeans-model-8-medmnist-path.pkl")
+        test= ImageTOGraphDataset(data=test,vae=vae,kmeans="/home/uz1/projects/GCN/kmeans-model-8-medmnist-path.pkl")
+        train.num_classes = 9
+        dataset = medmnist_modified_spltis(train,val,test)
+        del train,val,test
+    elif name == 'medmnist-path-cluster-h5':
+        dataset = ImageToClusterHD5(data=dataset_dir,split="train")
+        dataset_val = ImageToClusterHD5(data=dataset_dir,split="val")
+        dataset.train = dataset
+        dataset.val = dataset_val
+        dataset.test= dataset_val
+
     else:
         raise ValueError('{} not support'.format(name))
 
@@ -192,25 +232,31 @@ def set_dataset_info(dataset):
     try:
         cfg.share.dim_in = dataset.data.x.shape[1]
     except Exception:
-        cfg.share.dim_in = 1
+        cfg.share.dim_in = dataset[1].x.shape[1]
     try:
         if cfg.dataset.task_type == 'classification':
             cfg.share.dim_out = torch.unique(dataset.data.y).shape[0]
         else:
             cfg.share.dim_out = dataset.data.y.shape[1]
     except Exception:
-        cfg.share.dim_out = 1
+        cfg.share.dim_out = dataset.num_classes
 
     # count number of dataset splits
     cfg.share.num_splits = 1
-    for key in dataset.data.keys:
-        if 'val' in key:
+    try:
+        for key in dataset.data.keys:
+            if 'val' in key:
+                cfg.share.num_splits += 1
+                break
+        for key in dataset.data.keys:
+            if 'test' in key:
+                cfg.share.num_splits += 1
+                break
+    except:
+        if hasattr(dataset, 'val'):
             cfg.share.num_splits += 1
-            break
-    for key in dataset.data.keys:
-        if 'test' in key:
+        if hasattr(dataset, 'test'):
             cfg.share.num_splits += 1
-            break
 
 
 def create_dataset():
@@ -297,14 +343,14 @@ def create_loader():
     dataset = create_dataset()
     # train loader
     if cfg.dataset.task == 'graph':
-        id = dataset.data['train_graph_index']
+        id = dataset[dataset.data['train_graph_index']] if not hasattr(dataset,'train') else dataset.train
         loaders = [
-            get_loader(dataset[id],
+            get_loader(id,
                        cfg.train.sampler,
                        cfg.train.batch_size,
                        shuffle=True)
         ]
-        delattr(dataset.data, 'train_graph_index')
+        # delattr(dataset.data, 'train_graph_index')
     else:
         loaders = [
             get_loader(dataset,
@@ -316,14 +362,15 @@ def create_loader():
     # val and test loaders
     for i in range(cfg.share.num_splits - 1):
         if cfg.dataset.task == 'graph':
-            split_names = ['val_graph_index', 'test_graph_index']
-            id = dataset.data[split_names[i]]
+            split_names = ['val', 'test']
+            #check if has attr of split_names
+            id = getattr(dataset,split_names[i])
             loaders.append(
-                get_loader(dataset[id],
+                get_loader(id,
                            cfg.val.sampler,
                            cfg.train.batch_size,
                            shuffle=False))
-            delattr(dataset.data, split_names[i])
+            delattr(dataset, split_names[i])
         else:
             loaders.append(
                 get_loader(dataset,

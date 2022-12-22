@@ -2,7 +2,7 @@
 out_dir: results
 dataset:
   format: PyG
-  name: Cora
+  name: medmnidst-path
   task: node
   task_type: classification
   transductive: True

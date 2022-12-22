@@ -16,6 +16,7 @@ def train_epoch(logger, loader, model, optimizer, scheduler):
         optimizer.zero_grad()
         batch.to(torch.device(cfg.device))
         pred, true = model(batch)
+        pred=pred[:true.shape[0]]
         loss, pred_score = compute_loss(pred, true)
         loss.backward()
         optimizer.step()
