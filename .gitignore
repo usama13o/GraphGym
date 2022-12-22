@@ -3,8 +3,8 @@ run/datasets/data/
 **/__pycache__/
 **/.ipynb_checkpoints
 .idea/
-*.yaml
 **/results
+*-l_mp*
 **run/results/*
 *.csv
 *.json
@@ -16,3 +16,4 @@ run/datasets/data/
 *.yaml_done
 *events.out.tfevents.*
 *.ckpt
+**/run/configs/example*
