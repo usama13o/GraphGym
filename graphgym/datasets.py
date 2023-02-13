@@ -434,6 +434,7 @@ def populateS(labels,n_clusters=8,s=None):
         s = np.zeros((n_patches,n_clusters))
         for i in range(s.shape[0]):
             s[i][labels[i]] = 1
+         # TODO optimise this!
     else:
         s=s
 
@@ -621,12 +622,14 @@ class ImageToClusterHD5(Dataset):
     """ 
     Dataset takes holds the kmaens classifier and vae encoder. On each input image we encode then get k mean label then formulate graph as Data object
     """
-    def __init__(self,data,norm_adj=True,split=None):
+    def __init__(self,data,norm_adj=True,split=None,n_clusters=None):
         #read h5 file into self .data
         self.data = h5py.File(data,'r')
         self.x = self.data['x']
         self.ys = self.data['ys'][:].reshape(-1)
         self.labels = self.data['edge_index'][:].reshape(-1,self.data['edge_index'].shape[2])
+        self.nc = n_clusters
+        print("number of clusters", self.nc)
         print("len of x", self.x.shape)
         print("len of l", self.labels.shape)
         print("len of y", self.ys.shape)
@@ -653,7 +656,7 @@ class ImageToClusterHD5(Dataset):
     def __getitem__(self,index):
 
         label = self.labels[index]
-        s,out_adj = populateS(label,n_clusters=label.shape[0])
+        s,out_adj = populateS(label,n_clusters=label.shape[0] if self.nc == None else self.nc)
         x = self.x[index][:]
         if self.norm_adj:
             out_adj = out_adj.div(out_adj.sum(1))

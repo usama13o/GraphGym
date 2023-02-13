@@ -7,6 +7,7 @@ MAX_JOBS=3
 MAIN=main
 
 # generate configs (after controlling computational budget)
+cd /home/uz1/projects/GCN/GraphGym/run
 # please remove --config_budget, if don't control computational budget
 python /home/uz1/projects/GCN/GraphGym/run/configs_gen.py --config configs/pyg/${CONFIG}.yaml \
   --grid grids/pyg/${GRID}.txt \
@@ -16,9 +17,9 @@ python /home/uz1/projects/GCN/GraphGym/run/configs_gen.py --config configs/pyg/$
 # Args: config_dir, num of repeats, max jobs running
 bash parallel.sh configs/${CONFIG}_grid_${GRID} $REPEAT $MAX_JOBS $MAIN
 # rerun missed / stopped experiments
-bash parallel.sh configs/${CONFIG}_grid_${GRID} $REPEAT $MAX_JOBS $MAIN
+ bash parallel.sh configs/${CONFIG}_grid_${GRID} $REPEAT $MAX_JOBS $MAIN
 # rerun missed / stopped experiments
-bash parallel.sh configs/${CONFIG}_grid_${GRID} $REPEAT $MAX_JOBS $MAIN
+#bash parallel.sh configs/${CONFIG}_grid_${GRID} $REPEAT $MAX_JOBS $MAIN
 
 # aggregate results for the batch
 python /home/uz1/projects/GCN/GraphGym/run/agg_batch.py --dir results/${CONFIG}_grid_${GRID}

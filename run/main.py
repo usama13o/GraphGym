@@ -21,7 +21,8 @@ if __name__ == '__main__':
     args = parse_args()
     # Load config file
     load_cfg(cfg, args)
-    set_out_dir(cfg.out_dir, args.cfg_file)
+    # out dir is based on dir name  file 
+    set_out_dir(cfg.dataset.dir.split('/')[-1]+"-"+cfg.out_dir , args.cfg_file)
     # Set Pytorch environment
     torch.set_num_threads(cfg.num_threads)
     dump_cfg(cfg)

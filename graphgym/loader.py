@@ -86,7 +86,11 @@ def load_pyg(name, dataset_dir):
 
         dataset_raw = ImageTOGraphDataset(data=data,vae=vae,kmeans="/home/uz1/projects/GCN/kmeans-model-8-medmnist-path.pkl")
     elif "cluster" in name:
-        dataset_raw = ImageToClusterHD5(data=dataset_dir)
+        # get nc from path : /home/uz1/projects/GCN/GraphGym/run/graph-data---pathmnist-64-128.h5 -> 64
+        nc = int(dataset_dir.split("-")[-2])
+        # check if nc is in [16,32,64,128]
+        nc = nc if nc in [16,32,64,128] else None
+        dataset_raw = ImageToClusterHD5(data=dataset_dir,n_clusters=nc)
     elif name =="retinamnist":
         dataset_train = medmnist_modified(root=dataset_dir,split="train",download=True,flag="retinamnist")
         dataset_val = medmnist_modified(root=dataset_dir,split="val",download=True,flag="retinamnist")
@@ -276,7 +280,9 @@ def create_dataset():
         graphs, splits = load_dataset()
     else:
         graphs = load_dataset()
-
+    # check if graphs is none
+    if graphs is []:
+        raise ValueError('Graphs is None')
     # Filter graphs
     time2 = time.time()
     min_node = filter_graphs()

@@ -6,7 +6,7 @@ import torch_geometric as pyg
 import graphgym.register as register
 from graphgym.config import cfg
 from graphgym.contrib.layer.generalconv import (GeneralConvLayer,
-                                                GeneralEdgeConvLayer)
+                                                GeneralEdgeConvLayer,ModGeneralEdgeConvLayer)
 from graphgym.models.act import act_dict
 
 
@@ -228,7 +228,16 @@ class GeneralEdgeConv(nn.Module):
                                         batch.edge_index,
                                         edge_feature=batch.edge_feature)
         return batch
+class ModGeneralEdgeConv(nn.Module):
+    def __init__(self, dim_in, dim_out, bias=False, **kwargs):
+        super(ModGeneralEdgeConv, self).__init__()
+        self.model = ModGeneralEdgeConvLayer(dim_in, dim_out, bias=bias)
 
+    def forward(self, batch):
+        batch.node_feature = self.model(batch.node_feature,
+                                        batch.edge_index,
+                                        edge_feature=batch.edge_feature)
+        return batch
 
 class GeneralSampleEdgeConv(nn.Module):
     def __init__(self, dim_in, dim_out, bias=False, **kwargs):
@@ -256,6 +265,7 @@ layer_dict = {
     'generalconv': GeneralConv,
     'generaledgeconv': GeneralEdgeConv,
     'generalsampleedgeconv': GeneralSampleEdgeConv,
+    'modgeneraledgeconv': ModGeneralEdgeConv,
 }
 
 # register additional convs

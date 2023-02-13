@@ -206,6 +206,8 @@ def gen_grid(args, config, config_budget={}):
                 ptr[var_label[-1]] = vars[j]
                 var_repr = str(vars[j]).strip("[]").strip("''")
                 fname_out += f'-{vars_alias[j]}={var_repr}'
+                if vars_alias[j] =='dir' :
+                    fname_out = fname_out.replace('/', '_')
             if len(config_budget) > 0:
                 config_out = match_baseline_cfg(config_out, config_budget)
             with open(osp.join(out_dir, f'{fname_out[:250]}.yaml'), 'w') as f:

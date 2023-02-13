@@ -100,7 +100,7 @@ def load_pyg(name, dataset_dir):
         train.num_classes = 9
         dataset = medmnist_modified_spltis(train,val,test)
         del train,val,test
-    elif name == 'medmnist-path-cluster-h5':
+    elif name == 'cluster':
         dataset = ImageToClusterHD5(data=dataset_dir,split="train")
         dataset_val = ImageToClusterHD5(data=dataset_dir,split="val")
         dataset.train = dataset

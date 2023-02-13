@@ -550,6 +550,7 @@ def set_out_dir(out_dir, fname):
 
     """
     fname = get_fname(fname)
+    out_dir = os.path.join("results/",out_dir)
     cfg.out_dir = os.path.join(out_dir, fname)
     # Make output directory
     if cfg.train.auto_resume:
