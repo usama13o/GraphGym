@@ -22,6 +22,7 @@ def open_pickled_file(fn):
   with open(fn, "rb") as f_in:
     arr_new = pickle.load(f_in)
   return arr_new
+from sklearn.model_selection import StratifiedShuffleSplit
 
 class Whole_Slide_Bag(data.Dataset):
     def __init__(self,
@@ -650,14 +651,25 @@ class ImageToClusterHD5(Dataset):
         elif split == 'val':
             self.x = self.x[int(len(self.x)*.8):]
             self.labels = self.labels[int(len(self.labels)*.8):]
-            self.ys = self.ys[int(len(self.ys)*.8):]        
-        
-    def __len__(self):
-        return len(self.x) if self.limit == None else self.limit
-    def __getitem__(self,index):
+            self.ys = self.ys[int(len(self.ys)*.8):]  
 
         if self.limit != None:
-            index = index % len(self.x)
+            sss = StratifiedShuffleSplit(n_splits=1, test_size=self.limit, random_state=0)
+            train_index, test_index = next(sss.split(self.x, self.ys))
+            self.x = self.x[test_index]
+            self.labels = self.labels[test_index]
+            self.ys = self.ys[test_index]      
+            print("After stratified split ##")
+            print("->len of x", self.x.shape)
+            print("->len of l", self.labels.shape)
+            print("->len of y", self.ys.shape)
+        
+    def __len__(self):
+        return len(self.x)
+    def __getitem__(self,index):
+
+        # if self.limit != None:
+        #     index = index % len(self.x)
 
         label = self.labels[index]
         s,out_adj = populateS(label,n_clusters=label.shape[0] if self.nc == None else self.nc)

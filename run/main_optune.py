@@ -106,13 +106,14 @@ if __name__ == '__main__':
     # inin fake args
     parser = argparse.ArgumentParser(description=f"GraphGym + Optuna ")
     parser.add_argument('--dataset', type=str, default=None,required=True)
+    parser.add_argument('--tag', type=str, default="",required=False)
     args = parser.parse_args()
     args.cfg_file = "/home/uz1/projects/GCN/GraphGym/run/configs/pyg/example_graph_cluster_copy.yaml"
     args.opts = []
 
     pruner = optuna.pruners.HyperbandPruner() if sampler is not optuna.samplers.NSGAIISampler() else None
     # study name is name + date
-    study_name = args.dataset + " (" + datetime.datetime.now().strftime("%Y/%m/%d") + ")" + " - " + str(sampler.__class__.__name__)
+    study_name = args.dataset + " (" + datetime.datetime.now().strftime("%Y/%m/%d") + ")" + " - " + str(sampler.__class__.__name__) + "#" + args.tag
     optuna.logging.get_logger("optuna").addHandler(logging.StreamHandler(sys.stdout))
     
     #create optune study

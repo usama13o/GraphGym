@@ -90,7 +90,7 @@ def load_pyg(name, dataset_dir):
         nc = int(dataset_dir.split("-")[-2]) if len(dataset_dir.split("-"))>2 else None
         # check if nc is in [16,32,64,128]
         nc = nc if nc in [16,32,64,128] else None
-        dataset_raw = ImageToClusterHD5(data=dataset_dir,n_clusters=nc)
+        dataset_raw = ImageToClusterHD5(data=dataset_dir,n_clusters=nc,limit=11000)
     elif name =="retinamnist":
         dataset_train = medmnist_modified(root=dataset_dir,split="train",download=True,flag="retinamnist")
         dataset_val = medmnist_modified(root=dataset_dir,split="val",download=True,flag="retinamnist")
