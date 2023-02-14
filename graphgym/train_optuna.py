@@ -7,7 +7,7 @@ from graphgym.checkpoint import clean_ckpt, load_ckpt, save_ckpt
 from graphgym.config import cfg
 from graphgym.loss import compute_loss
 from graphgym.utils.epoch import is_ckpt_epoch, is_eval_epoch
-
+import optuna
 
 def train_epoch(logger, loader, model, optimizer, scheduler):
     model.train()

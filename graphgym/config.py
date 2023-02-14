@@ -521,7 +521,7 @@ def load_cfg(cfg, args):
 
 def makedirs_rm_exist(dir):
     if os.path.isdir(dir):
-        shutil.rmtree(dir)
+        shutil.rmtree(dir, ignore_errors=True)
     os.makedirs(dir, exist_ok=True)
 
 

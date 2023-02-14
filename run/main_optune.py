@@ -24,7 +24,7 @@ import sys
 
 def main(trial):
     # inin fake args
-    parser = argparse.ArgumentParser(description='GraphGym + Optuna')
+    parser = argparse.ArgumentParser(description=f"GraphGym + Optuna ({sampler.__class__.__name__})")
     args = parser.parse_args()
     args.cfg_file = "/home/uz1/projects/GCN/GraphGym/run/configs/pyg/example_graph_cluster_copy.yaml"
     args.opts = []
@@ -34,7 +34,7 @@ def main(trial):
     # modify cfg file with optune parameters, suggest_int, suggest_float, suggest_categorical
     ## gnn
     cfg.gnn.layers_mp = trial.suggest_int("layers_mp", 1, 4)
-    cfg.gnn.dim_inner = trial.suggest_int("dim_inner", 16, 512)
+    cfg.gnn.dim_inner = trial.suggest_int("dim_inner", 32, 512,step=32)
     cfg.gnn._layers_pre_mp = trial.suggest_categorical("layers_pre_mp",
                                                        [1, 2, 3, 4])
     cfg.gnn._layers_post_mp = trial.suggest_categorical(
@@ -46,12 +46,13 @@ def main(trial):
     cfg.gnn.dropout = trial.suggest_float("dropout", 0.1, 0.8, step=0.1)
     ## ae
     cfg.dataset.dir = trial.suggest_categorical("dataset.dir", [
-        "/home/uz1/projects/GCN/GraphGym/run/graph-data---dermamnist-32-128.h5",
-        "/home/uz1/projects/GCN/GraphGym/run/graph-data---dermamnist-32-256.h5",
-        "/home/uz1/projects/GCN/GraphGym/run/graph-data---dermamnist-64-128.h5",
-        "/home/uz1/projects/GCN/GraphGym/run/graph-data---dermamnist-64-256.h5",
-        "/home/uz1/projects/GCN/GraphGym/run/graph-data---dermamnist-128-256.h5",
-        "/home/uz1/projects/GCN/GraphGym/run/graph-data---dermamnist-128-512.h5",
+        "/home/uz1/projects/GCN/GraphGym/run/graph-data---pathmnist-32-128.h5",
+        "/home/uz1/projects/GCN/GraphGym/run/graph-data---pathmnist-32-256-UC_True.h5",
+        "/home/uz1/projects/GCN/GraphGym/run/graph-data---pathmnist-64-128.h5",
+        "/home/uz1/projects/GCN/GraphGym/run/graph-data---pathmnist-64-512-UC_True.h5",
+        "/home/uz1/graph-data---pathmnist-64.h5", # 64 - 256
+        "/home/uz1/projects/GCN/GraphGym/run/graph-data---pathmnist-128-256.h5",
+        "/home/uz1/projects/GCN/GraphGym/run/graph-data---pathmnist-128-512-UC_True.h5",
     ])
 
     # out dir is based on dir name  file
@@ -93,7 +94,9 @@ def main(trial):
 if __name__ == '__main__':
 
     # study name is name + date
-    study_name = "dermamnist" + " (" + datetime.datetime.now().strftime("%Y/%m/%d") + ")"
+    sampler=optuna.samplers.NSGAIISampler(seed=42)
+    pruner = optuna.pruners.HyperbandPruner() if sampler is not optuna.samplers.NSGAIISampler() else None
+    study_name = "pathmnist" + " (" + datetime.datetime.now().strftime("%Y/%m/%d") + ")" + " - " + str(sampler.__class__.__name__)
     optuna.logging.get_logger("optuna").addHandler(logging.StreamHandler(sys.stdout))
 
     #create optune study
@@ -101,8 +104,9 @@ if __name__ == '__main__':
         direction="maximize",
         storage="sqlite:///db.sqlite3",  # Specify the storage URL here.
         study_name=study_name,
-        pruner=optuna.pruners.HyperbandPruner(),
-        load_if_exists=True ) # Specify the study name here.
+        pruner=pruner,
+        load_if_exists=True,
+        sampler=sampler ) # Specify the study name here.
     # Run training
     study.optimize(
         main,

@@ -17,3 +17,4 @@ run/datasets/data/
 *events.out.tfevents.*
 *.ckpt
 **/run/configs/example*
+db.*sqlite*
