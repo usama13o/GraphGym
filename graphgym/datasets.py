@@ -622,8 +622,9 @@ class ImageToClusterHD5(Dataset):
     """ 
     Dataset takes holds the kmaens classifier and vae encoder. On each input image we encode then get k mean label then formulate graph as Data object
     """
-    def __init__(self,data,norm_adj=True,split=None,n_clusters=None):
+    def __init__(self,data,norm_adj=True,split=None,n_clusters=None,limit=None):
         #read h5 file into self .data
+        self.limit = limit
         self.data = h5py.File(data,'r')
         self.x = self.data['x']
         self.ys = self.data['ys'][:].reshape(-1)
@@ -652,8 +653,11 @@ class ImageToClusterHD5(Dataset):
             self.ys = self.ys[int(len(self.ys)*.8):]        
         
     def __len__(self):
-        return len(self.x)
+        return len(self.x) if self.limit == None else self.limit
     def __getitem__(self,index):
+
+        if self.limit != None:
+            index = index % len(self.x)
 
         label = self.labels[index]
         s,out_adj = populateS(label,n_clusters=label.shape[0] if self.nc == None else self.nc)

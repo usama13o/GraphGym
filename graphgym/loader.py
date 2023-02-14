@@ -87,7 +87,7 @@ def load_pyg(name, dataset_dir):
         dataset_raw = ImageTOGraphDataset(data=data,vae=vae,kmeans="/home/uz1/projects/GCN/kmeans-model-8-medmnist-path.pkl")
     elif "cluster" in name:
         # get nc from path : /home/uz1/projects/GCN/GraphGym/run/graph-data---pathmnist-64-128.h5 -> 64
-        nc = int(dataset_dir.split("-")[-2])
+        nc = int(dataset_dir.split("-")[-2]) if len(dataset_dir.split("-"))>2 else None
         # check if nc is in [16,32,64,128]
         nc = nc if nc in [16,32,64,128] else None
         dataset_raw = ImageToClusterHD5(data=dataset_dir,n_clusters=nc)

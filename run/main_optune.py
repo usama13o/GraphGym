@@ -22,12 +22,8 @@ import sys
 # https://optuna.readthedocs.io/en/stable/reference/integration.html#optuna.integration.OptunaSearchCV
 
 
-def main(trial):
-    # inin fake args
-    parser = argparse.ArgumentParser(description=f"GraphGym + Optuna ({sampler.__class__.__name__})")
-    args = parser.parse_args()
-    args.cfg_file = "/home/uz1/projects/GCN/GraphGym/run/configs/pyg/example_graph_cluster_copy.yaml"
-    args.opts = []
+def main(trial,args):
+    
     # Load config file
     load_cfg(cfg, args)
 
@@ -45,15 +41,27 @@ def main(trial):
     ])
     cfg.gnn.dropout = trial.suggest_float("dropout", 0.1, 0.8, step=0.1)
     ## ae
-    cfg.dataset.dir = trial.suggest_categorical("dataset.dir", [
-        "/home/uz1/projects/GCN/GraphGym/run/graph-data---pathmnist-32-128.h5",
-        "/home/uz1/projects/GCN/GraphGym/run/graph-data---pathmnist-32-256-UC_True.h5",
-        "/home/uz1/projects/GCN/GraphGym/run/graph-data---pathmnist-64-128.h5",
-        "/home/uz1/projects/GCN/GraphGym/run/graph-data---pathmnist-64-512-UC_True.h5",
-        "/home/uz1/graph-data---pathmnist-64.h5", # 64 - 256
-        "/home/uz1/projects/GCN/GraphGym/run/graph-data---pathmnist-128-256.h5",
-        "/home/uz1/projects/GCN/GraphGym/run/graph-data---pathmnist-128-512-UC_True.h5",
-    ])
+    if args.dataset == "pathmnist":
+        print("Using  - pathmnist")
+        cfg.dataset.dir = trial.suggest_categorical("dataset.dir", [
+            "/home/uz1/projects/GCN/GraphGym/run/graph-data---pathmnist-32-128.h5",
+            "/home/uz1/projects/GCN/GraphGym/run/graph-data---pathmnist-32-256-UC_True.h5",
+            "/home/uz1/projects/GCN/GraphGym/run/graph-data---pathmnist-64-128.h5",
+            "/home/uz1/projects/GCN/GraphGym/run/graph-data---pathmnist-64-512-UC_True.h5",
+            "/home/uz1/graph-data---pathmnist-64.h5", # 64 - 256
+            "/home/uz1/projects/GCN/GraphGym/run/graph-data---pathmnist-128-256.h5",
+            "/home/uz1/projects/GCN/GraphGym/run/graph-data---pathmnist-128-512-UC_True.h5",
+        ])
+    elif args.dataset == "bloodmnist":
+        print("Using  - bloodmnist")
+        cfg.dataset.dir = trial.suggest_categorical("dataset.dir", [
+            "/home/uz1/projects/GCN/GraphGym/run/graph-data---bloodmnist-32-128.h5",
+            "/home/uz1/projects/GCN/GraphGym/run/graph-data---bloodmnist-32-256.h5",
+            "/home/uz1/projects/GCN/GraphGym/run/graph-data---bloodmnist-32-512.h5",
+            "/home/uz1/projects/GCN/GraphGym/run/graph-data---bloodmnist-64-128.h5",
+            "/home/uz1/projects/GCN/GraphGym/run/graph-data---bloodmnist-64-256.h5",
+            "/home/uz1/projects/GCN/GraphGym/run/graph-data---bloodmnist-64-512.h5",
+        ])
 
     # out dir is based on dir name  file
 
@@ -92,13 +100,21 @@ def main(trial):
 
 
 if __name__ == '__main__':
-
-    # study name is name + date
+    
     sampler=optuna.samplers.NSGAIISampler(seed=42)
-    pruner = optuna.pruners.HyperbandPruner() if sampler is not optuna.samplers.NSGAIISampler() else None
-    study_name = "pathmnist" + " (" + datetime.datetime.now().strftime("%Y/%m/%d") + ")" + " - " + str(sampler.__class__.__name__)
-    optuna.logging.get_logger("optuna").addHandler(logging.StreamHandler(sys.stdout))
 
+    # inin fake args
+    parser = argparse.ArgumentParser(description=f"GraphGym + Optuna ")
+    parser.add_argument('--dataset', type=str, default=None,required=True)
+    args = parser.parse_args()
+    args.cfg_file = "/home/uz1/projects/GCN/GraphGym/run/configs/pyg/example_graph_cluster_copy.yaml"
+    args.opts = []
+
+    pruner = optuna.pruners.HyperbandPruner() if sampler is not optuna.samplers.NSGAIISampler() else None
+    # study name is name + date
+    study_name = args.dataset + " (" + datetime.datetime.now().strftime("%Y/%m/%d") + ")" + " - " + str(sampler.__class__.__name__)
+    optuna.logging.get_logger("optuna").addHandler(logging.StreamHandler(sys.stdout))
+    
     #create optune study
     study = optuna.create_study(
         direction="maximize",
@@ -109,6 +125,6 @@ if __name__ == '__main__':
         sampler=sampler ) # Specify the study name here.
     # Run training
     study.optimize(
-        main,
+        lambda trial: main(trial,args),
         n_trials=100,
     )
