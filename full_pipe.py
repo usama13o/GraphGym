@@ -14,6 +14,8 @@ from graphgym.utils.comp_budget import params_count
 from graphgym.utils.device import auto_select_device
 from torch_geometric import seed_everything
 import optuna
+from optuna.trial import TrialState
+
 def main(trial,args):
     
     image_size = trial.suggest_int("image_size", 28, 512, step=4)
@@ -23,6 +25,13 @@ def main(trial,args):
     dataset = "pathmnist"
     # batch size should depend oon num_patches by 
     batch_size = 128 // (num_patches)
+    batch_size = batch_size if batch_size > 0 else 1
+    # check if trial already exists - running or complete - if failed it should run again
+    for previous_trial in trial.study.trials:
+        if (previous_trial.state == TrialState.RUNNING or previous_trial.state == TrialState.COMPLETE ) and trial.params == previous_trial.params:
+            print(f"Duplicated trial: {trial.params}")
+            raise optuna.exceptions.TrialPruned()
+
     print(f"image_size: {image_size}, patch_size: {patch_size}, num_nodes: {num_nodes}, batch_size: {batch_size}")
     # run vae_pipe.py 
     import subprocess
