@@ -1,4 +1,4 @@
-out_dir: results/deepsnap-cluster-grid-path-64-512
+out_dir: results/deepsnap-cluster-pp
 dataset:
   format: PyG
   name: cluster
@@ -8,7 +8,7 @@ dataset:
   node_encoder_name: Atom
   edge_encoder: False
   edge_encoder_name: Bond
-  dir: /home/uz1/projects/GCN/GraphGym/run/graph-data---dermamnist-64-256.h5
+  dir: /home/uz1/graph-data---pathmnist-16-32-128-UC_False.h5
 train:
   batch_size: 128
   eval_period: 1
@@ -23,7 +23,7 @@ gnn:
   layers_pre_mp: 1
   layers_mp: 2
   layers_post_mp: 3
-  dim_inner: 256
+  dim_inner: 512
   layer_type: sageconv
   stage_type: skipconcat
   batchnorm: True

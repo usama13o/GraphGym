@@ -17,13 +17,11 @@ from graphgym.datasets import ImageTOGraphDataset, ImageToClusterHD5
 import graphgym.register as register
 from graphgym.config import cfg
 from graphgym.models.transform import create_link_label, neg_sampling_transform
-from graphgym.datasets import medmnist_modified, medmnist_modified_spltis
 
 from medmnist.dataset import PathMNIST, BreastMNIST,OCTMNIST,ChestMNIST,PneumoniaMNIST,DermaMNIST,RetinaMNIST,BloodMNIST,TissueMNIST,OrganAMNIST,OrganCMNIST,OrganSMNIST
 
-from graphgym.datasets import VAE, ImgToGraph, medmnist_modified
+from graphgym.datasets import VAE, ImgToGraph, medmnist_modified,DivideIntoPatches,medmnist_modified_spltis
 
-from medmnist.dataset import PathMNIST, BreastMNIST,OCTMNIST,ChestMNIST,PneumoniaMNIST,DermaMNIST,RetinaMNIST,BloodMNIST,TissueMNIST,OrganAMNIST,OrganCMNIST,OrganSMNIST
 
 def planetoid_dataset(name: str) -> Callable:
     return lambda root: Planetoid(root, name)
@@ -81,24 +79,25 @@ def load_pyg(name, dataset_dir):
         dataset = medmnist_modified_spltis(train,val,test)
     elif name == 'medmnist-path-cluster':
         from torchvision import transforms
+       
         transform = transforms.Compose([
-                    transforms.ToTensor(),
-                    # transforms.RandomResizedCrop((128,128)),
-                    transforms.ConvertImageDtype(torch.float),
-                    transforms.Resize((128,128)),
-                ])
-        vae = VAE(input_height=32, latent_dim=1024)
-        vae = vae.load_from_checkpoint("/home/uz1/projects/GCN/logging/epoch=128-step=45278.ckpt")
+            transforms.ToTensor(),
+            transforms.Resize((128, 128)),
+            transforms.ConvertImageDtype(torch.float),
+            DivideIntoPatches(patch_size=32), # takes an image tensor and returns a list of patches stacked as (H // patch_size **2 x H x W x C)
+        ])
+        vae = VAE(input_height=32, latent_dim=256)
+        vae = vae.load_from_checkpoint("/home/uz1/projects/GCN/logging/PathMNIST/16/epoch=7-step=89992.ckpt")
 
         train= PathMNIST(root='/home/uz1/DATA!/medmnist', download=True,split='train',transform=transform)
         val= PathMNIST(root='/home/uz1/DATA!/medmnist', download=True,split='val',transform=transform)
         test= PathMNIST(root='/home/uz1/DATA!/medmnist', download=True,split='test',transform=transform)
 
-        train= ImageTOGraphDataset(data=train,vae=vae,kmeans="/home/uz1/projects/GCN/kmeans-model-8-medmnist-path.pkl")
-        val= ImageTOGraphDataset(data=val,vae=vae,kmeans="/home/uz1/projects/GCN/kmeans-model-8-medmnist-path.pkl")
-        test= ImageTOGraphDataset(data=test,vae=vae,kmeans="/home/uz1/projects/GCN/kmeans-model-8-medmnist-path.pkl")
-        train.num_classes = 9
-        dataset = medmnist_modified_spltis(train,val,test)
+        train= ImageTOGraphDataset(data=train,vae=vae,kmeans="/home/uz1/projects/GCN/GraphGym/run/kmeans-model-128-16-8-PathMNIST.pkl")
+        val= ImageTOGraphDataset(data=val,vae=vae,kmeans="/home/uz1/projects/GCN/GraphGym/run/kmeans-model-128-16-8-PathMNIST.pkl")
+        test= ImageTOGraphDataset(data=test,vae=vae,kmeans="/home/uz1/projects/GCN/GraphGym/run/kmeans-model-128-16-8-PathMNIST.pkl")
+        # train.num_classes = 9
+        dataset = medmnist_modified_spltis(train,val,test,num_classes=9)
         del train,val,test
     elif name == 'cluster':
         dataset = ImageToClusterHD5(data=dataset_dir,split="train")

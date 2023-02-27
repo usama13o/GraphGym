@@ -18,3 +18,7 @@ run/datasets/data/
 *.ckpt
 **/run/configs/example*
 db.*sqlite*
+run/lightning_logs/version_220/33747/default/sprite.png
+*.tsv
+*.png
+*.pbtxt

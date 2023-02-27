@@ -11,7 +11,7 @@ from graphgym.logger import create_logger, setup_printing
 from graphgym.model_builder import create_model
 from graphgym.optimizer import create_optimizer, create_scheduler
 from graphgym.register import train_dict
-from graphgym.train import train
+from graphgym.train_optuna import train
 from graphgym.utils.agg_runs import agg_runs
 from graphgym.utils.comp_budget import params_count
 from graphgym.utils.device import auto_select_device
@@ -48,12 +48,19 @@ if __name__ == '__main__':
         logging.info('Num parameters: %s', cfg.params)
         # Start training
         if cfg.train.mode == 'standard':
-            train(loggers, loaders, model, optimizer, scheduler)
+            acc = train(loggers, loaders, model, optimizer, scheduler)
         else:
             train_dict[cfg.train.mode](loggers, loaders, model, optimizer,
                                        scheduler)
+
+    #save acc to txt
+    with open("/home/uz1/projects/GCN/acc.txt", "w") as f:
+        f.write(str(acc))
+
+
+
     # Aggregate results from different seeds
-    agg_runs(cfg.out_dir, cfg.metric_best)
+    # agg_runs(cfg.out_dir, cfg.metric_best)
     # When being launched in batch mode, mark a yaml as done
     if args.mark_done:
         os.rename(args.cfg_file, f'{args.cfg_file}_done')

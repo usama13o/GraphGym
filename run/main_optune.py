@@ -44,13 +44,23 @@ def main(trial,args):
     if args.dataset == "pathmnist":
         print("Using  - pathmnist")
         cfg.dataset.dir = trial.suggest_categorical("dataset.dir", [
-            "/home/uz1/projects/GCN/GraphGym/run/graph-data---pathmnist-32-128.h5",
-            "/home/uz1/projects/GCN/GraphGym/run/graph-data---pathmnist-32-256-UC_True.h5",
-            "/home/uz1/projects/GCN/GraphGym/run/graph-data---pathmnist-64-128.h5",
-            "/home/uz1/projects/GCN/GraphGym/run/graph-data---pathmnist-64-512-UC_True.h5",
-            "/home/uz1/graph-data---pathmnist-64.h5", # 64 - 256
-            "/home/uz1/projects/GCN/GraphGym/run/graph-data---pathmnist-128-256.h5",
-            "/home/uz1/projects/GCN/GraphGym/run/graph-data---pathmnist-128-512-UC_True.h5",
+            # "/home/uz1/projects/GCN/GraphGym/run/graph-data---pathmnist-32-128.h5",
+            # "/home/uz1/projects/GCN/GraphGym/run/graph-data---pathmnist-32-256-UC_True.h5",
+            # "/home/uz1/projects/GCN/GraphGym/run/graph-data---pathmnist-64-128.h5",
+            # "/home/uz1/projects/GCN/GraphGym/run/graph-data---pathmnist-64-512-UC_True.h5",
+            # "/home/uz1/graph-data---pathmnist-64.h5", # 64 - 256
+            # "/home/uz1/projects/GCN/GraphGym/run/graph-data---pathmnist-128-256.h5",
+            # "/home/uz1/projects/GCN/GraphGym/run/graph-data---pathmnist-128-512-UC_True.h5",
+
+            # "/home/uz1/projects/GCN/GraphGym/run/graph-data---pathmnist-8-128-UC_False.h5",
+            # "/home/uz1/projects/GCN/GraphGym/run/graph-data---pathmnist-16-128-UC_False.h5",
+            # "/home/uz1/projects/GCN/GraphGym/run/graph-data---pathmnist-32-128-UC_False.h5",
+            # "/home/uz1/projects/GCN/GraphGym/run/graph-data---pathmnist-64-128-UC_False.h5",
+
+            "/home/uz1/graph-data---pathmnist-16-8-128-UC_False.h5",
+            "/home/uz1/graph-data---pathmnist-16-32-128-UC_False.h5",
+            "/home/uz1/graph-data---pathmnist-16-64-128-UC_False.h5",
+
         ])
     elif args.dataset == "bloodmnist":
         print("Using  - bloodmnist")
@@ -62,6 +72,7 @@ def main(trial,args):
             "/home/uz1/projects/GCN/GraphGym/run/graph-data---bloodmnist-64-256.h5",
             "/home/uz1/projects/GCN/GraphGym/run/graph-data---bloodmnist-64-512.h5",
         ])
+    cfg.dataset.limit = args.limit
 
     # out dir is based on dir name  file
 
@@ -107,13 +118,14 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=f"GraphGym + Optuna ")
     parser.add_argument('--dataset', type=str, default=None,required=True)
     parser.add_argument('--tag', type=str, default="",required=False)
-    args = parser.parse_args()
+    parser.add_argument('--limit', type=int, default=11000,required=False)
+    args = parser.parse_args() 
     args.cfg_file = "/home/uz1/projects/GCN/GraphGym/run/configs/pyg/example_graph_cluster_copy.yaml"
     args.opts = []
 
     pruner = optuna.pruners.HyperbandPruner() if sampler is not optuna.samplers.NSGAIISampler() else None
     # study name is name + date
-    study_name = args.dataset + " (" + datetime.datetime.now().strftime("%Y/%m/%d") + ")" + " - " + str(sampler.__class__.__name__) + "#" + args.tag
+    study_name = args.dataset + " - " + str(sampler.__class__.__name__) + f"#{args.tag}" if args.tag != "" else args.dataset + " (" + datetime.datetime.now().strftime("%Y/%m/%d") + ")" + " - " + str(sampler.__class__.__name__)
     optuna.logging.get_logger("optuna").addHandler(logging.StreamHandler(sys.stdout))
     
     #create optune study

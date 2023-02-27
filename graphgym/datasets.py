@@ -399,10 +399,10 @@ class medmnist_modified(MedMNIST2D):
         return data
 class medmnist_modified_spltis(MedMNIST2D):
 
-    def __init__(self,train=None,val=None,test=None, transform=None):
+    def __init__(self,train=None,val=None,test=None, transform=None,num_classes=None):
         # super().__init__(split, transform, target_transform, download, as_rgb, root)
         
-        self.num_classes = train.num_classes
+        self.num_classes = train.num_classes if num_classes is None else num_classes
         self.train = train
         self.val = val 
         self.test = test
@@ -431,13 +431,11 @@ def populateS(labels,n_clusters=8,s=None):
     # print("S is " ,s==None)
     n_patches=len(labels)
     div = int(sqrt(n_patches))
-    if s == None:
-        s = np.zeros((n_patches,n_clusters))
-        for i in range(s.shape[0]):
-            s[i][labels[i]] = 1
+ 
+    s = np.zeros((n_patches,n_clusters))
+    s[np.arange(n_patches), labels] = 1
          # TODO optimise this!
-    else:
-        s=s
+
 
     #calc adj matrix
     adj = to_dense_adj(grid(n_patches//div,n_patches//div)[0]).reshape(n_patches,n_patches)
@@ -466,19 +464,19 @@ class ImageTOGraphDataset(Dataset):
             self.kmeans = pickle.load(f)      
         self.norm_adj = norm_adj
         self.patch_iter = PatchIter(patch_size=(32, 32), start_pos=(0, 0))
+
+        # if self.data[1][0].dim() >3:
+        #     self.__getitem__ = self.__getitem__patches   
+            # add attr
+
     def __len__(self):
         return len(self.data)
     def __getitem__(self,index):
-        
-        patches = []
-        for x in self.patch_iter(self.data[index][0]):
-            patches.append(x[0])
-            
-        patches = torch.stack([torch.tensor(np.array(patches))],0).squeeze()
 
+        patches = self.data[index][0]
         z=get_embedding_vae(patches,self.vae).clone().detach().cpu().numpy()
         label=self.kmeans.predict(z)
-        s,out_adj = populateS(label)
+        s,out_adj = populateS(label,self.kmeans.cluster_centers_.shape[0])
         x = np.matmul(s.transpose(1,0) , z)
         if self.return_x_only:
             return x,label,self.data[index][1]
@@ -490,6 +488,29 @@ class ImageTOGraphDataset(Dataset):
             #assert if there is nan in tensor
             assert out_adj.isnan().any() == False , "Found nan in out_adj"
         return Data(x=torch.tensor(x).float(),edge_index=dense_to_sparse(out_adj)[0],y=torch.tensor(self.data[index][1]),edge_attr=dense_to_sparse(out_adj)[1])
+
+    # def __getitem__(self,index):
+        
+    #     patches = []
+    #     for x in self.patch_iter(self.data[index][0]):
+    #         patches.append(x[0])
+            
+    #     patches = torch.stack([torch.tensor(np.array(patches))],0).squeeze()
+
+    #     z=get_embedding_vae(patches,self.vae).clone().detach().cpu().numpy()
+    #     label=self.kmeans.predict(z)
+    #     s,out_adj = populateS(label)
+    #     x = np.matmul(s.transpose(1,0) , z)
+    #     if self.return_x_only:
+    #         return x,label,self.data[index][1]
+    #     #if normlaise adj 
+    #     if self.norm_adj:
+    #         out_adj = out_adj.div(out_adj.sum(1))
+    #         #nan to 0 in tensor 
+    #         out_adj = out_adj.nan_to_num(0)
+    #         #assert if there is nan in tensor
+    #         assert out_adj.isnan().any() == False , "Found nan in out_adj"
+    #     return Data(x=torch.tensor(x).float(),edge_index=dense_to_sparse(out_adj)[0],y=torch.tensor(self.data[index][1]),edge_attr=dense_to_sparse(out_adj)[1])
 
 class KDataset(Dataset):
     
@@ -629,8 +650,8 @@ class ImageToClusterHD5(Dataset):
         self.data = h5py.File(data,'r')
         self.x = self.data['x']
         self.ys = self.data['ys'][:].reshape(-1)
-        self.labels = self.data['edge_index'][:].reshape(-1,self.data['edge_index'].shape[2])
-        self.nc = n_clusters
+        self.labels = self.data['edge_index'][:].reshape(-1,self.data['edge_index'].shape[1])
+        self.nc = self.x.shape[1]
         print("number of clusters", self.nc)
         print("len of x", self.x.shape)
         print("len of l", self.labels.shape)
@@ -663,6 +684,9 @@ class ImageToClusterHD5(Dataset):
             print("->len of x", self.x.shape)
             print("->len of l", self.labels.shape)
             print("->len of y", self.ys.shape)
+            #print  Unique labels with counts
+            print("Unique labels with counts\n",np.unique(self.ys,return_counts=True))
+
         
     def __len__(self):
         return len(self.x)
@@ -682,3 +706,14 @@ class ImageToClusterHD5(Dataset):
             assert out_adj.isnan().any() == False , "Found nan in out_adj"
         # assert self.ys[index] != None , "Found None in ys"
         return Data(x=torch.tensor(x).float(),edge_index=dense_to_sparse(out_adj)[0],y=torch.tensor([self.ys[index]]),edge_attr=dense_to_sparse(out_adj)[1])
+class DivideIntoPatches:
+    def __init__(self, patch_size):
+        self.patch_size = patch_size
+
+    def __call__(self, img):
+        height, width = img.shape[-2:]
+        patches = []
+        for i in range(0, height - self.patch_size + 1, self.patch_size):
+            for j in range(0, width - self.patch_size + 1, self.patch_size):
+                patches.append(img[ :, i:i + self.patch_size, j:j + self.patch_size])
+        return torch.stack(patches, dim=0)

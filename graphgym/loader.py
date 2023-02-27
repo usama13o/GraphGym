@@ -19,10 +19,10 @@ import graphgym.register as register
 from graphgym.config import cfg
 from graphgym.models.transform import (edge_nets, ego_nets, path_len,
                                        remove_node_feature)
-from graphgym.datasets import VAE, ImgToGraph, medmnist_modified,ConcatDataset
+from graphgym.datasets import VAE, ImgToGraph, medmnist_modified,ConcatDataset,DivideIntoPatches
 
 from medmnist.dataset import PathMNIST, BreastMNIST,OCTMNIST,ChestMNIST,PneumoniaMNIST,DermaMNIST,RetinaMNIST,BloodMNIST,TissueMNIST,OrganAMNIST,OrganCMNIST,OrganSMNIST
-def load_pyg(name, dataset_dir):
+def load_pyg(name, dataset_dir,limit=None):
     '''
     load pyg format dataset
     :param name: dataset name
@@ -73,24 +73,25 @@ def load_pyg(name, dataset_dir):
         dataset_raw = medmnist_modified(root=dataset_dir,split="train",download=True,flag="pathmnist",num_classes=9)
     elif name == 'medmnist-path-cluster':
         from torchvision import transforms
+       
         transform = transforms.Compose([
-                    transforms.ToTensor(),
-                    # transforms.RandomResizedCrop((128,128)),
-                    transforms.ConvertImageDtype(torch.float),
-                    transforms.Resize((128,128)),
-                ])
-        vae = VAE(input_height=32, latent_dim=1024)
-        vae = vae.load_from_checkpoint("/home/uz1/projects/GCN/logging/epoch=128-step=45278.ckpt")
+            transforms.ToTensor(),
+            transforms.Resize((128, 128)),
+            transforms.ConvertImageDtype(torch.float),
+            DivideIntoPatches(patch_size=32), # takes an image tensor and returns a list of patches stacked as (H // patch_size **2 x H x W x C)
+        ])
+        vae = VAE(input_height=32, latent_dim=256)
+        vae = vae.load_from_checkpoint("/home/uz1/projects/GCN/logging/PathMNIST/epoch=7-step=89992.ckpt")
 
-        data= PathMNIST(root='/home/uz1/DATA!/medmnist', download=True,split='train',transform=transform)
+        data = PathMNIST(root='/home/uz1/DATA!/medmnist', download=True,split='train',transform=transform)
 
-        dataset_raw = ImageTOGraphDataset(data=data,vae=vae,kmeans="/home/uz1/projects/GCN/kmeans-model-8-medmnist-path.pkl")
+        dataset_raw = ImageTOGraphDataset(data=data,vae=vae,kmeans="/home/uz1/projects/GCN/kmeans-model-128-32-8-PathMNIST.pkl")
     elif "cluster" in name:
         # get nc from path : /home/uz1/projects/GCN/GraphGym/run/graph-data---pathmnist-64-128.h5 -> 64
         nc = int(dataset_dir.split("-")[-2]) if len(dataset_dir.split("-"))>2 else None
         # check if nc is in [16,32,64,128]
         nc = nc if nc in [16,32,64,128] else None
-        dataset_raw = ImageToClusterHD5(data=dataset_dir,n_clusters=nc,limit=11000)
+        dataset_raw = ImageToClusterHD5(data=dataset_dir,n_clusters=nc)#,limit=51000)
     elif name =="retinamnist":
         dataset_train = medmnist_modified(root=dataset_dir,split="train",download=True,flag="retinamnist")
         dataset_val = medmnist_modified(root=dataset_dir,split="val",download=True,flag="retinamnist")
@@ -165,7 +166,7 @@ def load_dataset():
             return graphs
     # Load from Pytorch Geometric dataset
     if format == 'PyG':
-        graphs = load_pyg(name, dataset_dir)
+        graphs = load_pyg(name, dataset_dir,cfg.dataset.limit if hasattr(cfg.dataset, "limit") else None)
     # Load from networkx formatted data
     # todo: clean nx dataloader
     elif format == 'nx':
