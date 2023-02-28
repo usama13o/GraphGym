@@ -19,19 +19,26 @@ from optuna.trial import TrialState
 def main(trial,args):
     
     image_size = trial.suggest_int("image_size", 28, 512, step=4)
-    patch_size = trial.suggest_int("patch_size", 4, 32, step=4)
+    patch_size = trial.suggest_int("patch_size", 8, 104, step=8)
     num_patches = (image_size // patch_size) ** 2
+    if num_patches == 0: 
+        print("Too many patches per image !")
+        raise optuna.exceptions.TrialPruned()
+    
     num_nodes = trial.suggest_int("num_nodes", 4, 128, step=4)
     dataset = "pathmnist"
     # batch size should depend oon num_patches by 
     batch_size = 128 // (num_patches)
-    batch_size = batch_size if batch_size > 0 else 1
-    # check if trial already exists - running or complete - if failed it should run again
-    for previous_trial in trial.study.trials:
-        if (previous_trial.state == TrialState.RUNNING or previous_trial.state == TrialState.COMPLETE ) and trial.params == previous_trial.params:
+    if batch_size == 0:
+        print("Too many patches per image !")
+        raise optuna.exceptions.TrialPruned()
+    # check if trial already exists - running or complete or pruned  - if failed it should run again
+    for previous_trial in trial.study.trials[:-1]:
+        if (previous_trial.state == TrialState.RUNNING or previous_trial.state == TrialState.COMPLETE  or previous_trial.state == TrialState.PRUNED) and trial.params == previous_trial.params:
             print(f"Duplicated trial: {trial.params}")
             raise optuna.exceptions.TrialPruned()
-
+    # if num_patches <10:
+    #     batch_size = 16
     print(f"image_size: {image_size}, patch_size: {patch_size}, num_nodes: {num_nodes}, batch_size: {batch_size}")
     # run vae_pipe.py 
     import subprocess
