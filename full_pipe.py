@@ -4,7 +4,7 @@ from graphgym.config import cfg, dump_cfg, load_cfg, set_run_dir, set_out_dir
 from graphgym.cmd_args import parse_args
 from graphgym.config import cfg, dump_cfg, load_cfg, set_run_dir, set_out_dir
 from graphgym.loader import create_dataset, create_loader
-from graphgym.logger import create_logger, setup_printing
+from graphgym.logger_optuna import create_logger, setup_printing
 from graphgym.model_builder import create_model
 from graphgym.optimizer import create_optimizer, create_scheduler
 from graphgym.register import train_dict
@@ -21,8 +21,8 @@ def main(trial,args):
     image_size = trial.suggest_int("image_size", 28, 512, step=4)
     patch_size = trial.suggest_int("patch_size", 8, 104, step=8)
     num_patches = (image_size // patch_size) ** 2
-    if num_patches == 0: 
-        print("Too many patches per image !")
+    if num_patches in  [0,1,2,3]: 
+        print("Too little patches per image !")
         raise optuna.exceptions.TrialPruned()
     
     num_nodes = trial.suggest_int("num_nodes", 4, 128, step=4)
@@ -37,8 +37,10 @@ def main(trial,args):
         if (previous_trial.state == TrialState.RUNNING or previous_trial.state == TrialState.COMPLETE  or previous_trial.state == TrialState.PRUNED) and trial.params == previous_trial.params:
             print(f"Duplicated trial: {trial.params}")
             raise optuna.exceptions.TrialPruned()
-    # if num_patches <10:
-    #     batch_size = 16
+    if num_patches <10:
+        batch_size = batch_size // 2
+    if patch_size > 80 and num_patches > 10 :
+        batch_size = batch_size // 2
     print(f"image_size: {image_size}, patch_size: {patch_size}, num_nodes: {num_nodes}, batch_size: {batch_size}")
     # run vae_pipe.py 
     import subprocess
@@ -81,7 +83,7 @@ def main(trial,args):
     cfg.params = params_count(model)
     logging.info('Num parameters: %s', cfg.params)
     # Start training
-    acc1 = train(loggers, loaders, model, optimizer, scheduler)
+    acc1 = train(loggers, loaders, model, optimizer, scheduler, trial)
 
     # run graphgym on cfg2
     cfg.gnn.layer_type = "sageconv"
@@ -94,7 +96,7 @@ def main(trial,args):
     cfg.params = params_count(model)
     logging.info('Num parameters: %s', cfg.params)
     # Start training
-    acc2 = train(loggers, loaders, model, optimizer, scheduler)
+    acc2 = train(loggers, loaders, model, optimizer, scheduler, trial)
     
     # run graphgym on 
     cfg.gnn.layer_type = "gatconv"
@@ -107,7 +109,7 @@ def main(trial,args):
     cfg.params = params_count(model)
     logging.info('Num parameters: %s', cfg.params)
     # Start training
-    acc3 = train(loggers, loaders, model, optimizer, scheduler)
+    acc3 = train(loggers, loaders, model, optimizer, scheduler, trial)
     
     # get accuracy average - make sure they're all floats
     acc = (float(acc1) + float(acc2) + float(acc3)) / 3
@@ -133,10 +135,10 @@ if __name__ == "__main__":
     torch.backends.cudnn.deterministic = True
 
     # set sampler
-    sampler=optuna.samplers.NSGAIISampler(seed=42)
+    sampler=optuna.samplers.NSGAIISampler(seed=22)
 
-        # inin fake args
-    parser = argparse.ArgumentParser(description=f"GraphGym + Optuna ")
+    # inin fake args
+    parser = argparse.ArgumentParser(description=f"fullpipline Optuna ")
     parser.add_argument('--dataset', type=str, default=None,required=True)
     parser.add_argument('--tag', type=str, default="",required=False)
     parser.add_argument('--limit', type=int, default=11000,required=False)

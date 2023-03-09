@@ -21,14 +21,14 @@ model:
   graph_pooling: add
 gnn:
   layers_pre_mp: 2
-  layers_mp: 2
+  layers_mp: 1
   layers_post_mp: 2
   dim_inner: 256
   layer_type: generaledgeconv
   stage_type: skipconcat
   batchnorm: True
   act: prelu
-  dropout: 0.7
+  dropout: 0.3
   agg: mean
   normalize_adj: False
 optim:

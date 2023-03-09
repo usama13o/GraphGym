@@ -22,3 +22,4 @@ run/lightning_logs/version_220/33747/default/sprite.png
 *.tsv
 *.png
 *.pbtxt
+*.yaml
