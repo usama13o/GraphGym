@@ -18,14 +18,22 @@ from optuna.trial import TrialState
 
 def main(trial,args):
     
-    image_size = trial.suggest_int("image_size", 28, 512, step=4)
-    patch_size = trial.suggest_int("patch_size", 8, 104, step=8)
+    #withc to suggest categorical of only two ints 28 and 224
+    image_size = trial.suggest_categorical("image_size", [28, 224])
+    if image_size == 28:
+        # suggest patch_size up to quarter of image size
+        patch_size = trial.suggest_int("patch_size", 8, 7, step=8)
+    else:
+        # suggest patch_size up to quarter of image size
+        patch_size = trial.suggest_int("patch_size", 8, 112, step=8)
     num_patches = (image_size // patch_size) ** 2
     if num_patches in  [0,1,2,3]: 
         print("Too little patches per image !")
         raise optuna.exceptions.TrialPruned()
     
-    num_nodes = trial.suggest_int("num_nodes", 4, 128, step=4)
+    num_nodes = trial.suggest_int("num_nodes", 4, 224, step=4)
+    # numer of nodes should be less than the maximum number of patches
+
     dataset = "pathmnist"
     # batch size should depend oon num_patches by 
     batch_size = 128 // (num_patches)
@@ -41,7 +49,7 @@ def main(trial,args):
         batch_size = batch_size // 2
     if patch_size > 80 and num_patches > 10 :
         batch_size = batch_size // 2
-    print(f"image_size: {image_size}, patch_size: {patch_size}, num_nodes: {num_nodes}, batch_size: {batch_size}")
+    print(f"Trial run with \n image_size: {image_size}, patch_size: {patch_size}, num_nodes: {num_nodes}, batch_size: {batch_size}")
     # run vae_pipe.py 
     import subprocess
     subprocess.run(["python", "/home/uz1/projects/GCN/vae_pipe.py", "--img_size", str(image_size), "--patch_size", str(patch_size), "--batch_size", str(batch_size),"-use_pretrain","True","-k",str(num_nodes)])
