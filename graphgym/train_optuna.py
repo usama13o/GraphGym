@@ -80,9 +80,10 @@ def train(loggers, loaders, model, optimizer, scheduler,trial):
         if is_ckpt_epoch(cur_epoch):
             save_ckpt(model, optimizer, scheduler, cur_epoch)
         # Handle pruning based on the intermediate value.
-        trial.report(task_stats['accuracy'] , cur_epoch)
-        if trial.should_prune():
-            raise optuna.TrialPruned()
+        if trial is not None:
+            trial.report(task_stats['accuracy'] , cur_epoch)
+            if trial.should_prune():
+                raise optuna.TrialPruned()
         
         
     for logger in loggers:

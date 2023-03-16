@@ -19,13 +19,8 @@ from optuna.trial import TrialState
 def main(trial,args):
     
     #withc to suggest categorical of only two ints 28 and 224
-    image_size = trial.suggest_categorical("image_size", [28, 224])
-    if image_size == 28:
-        # suggest patch_size up to quarter of image size
-        patch_size = trial.suggest_int("patch_size", 8, 7, step=8)
-    else:
-        # suggest patch_size up to quarter of image size
-        patch_size = trial.suggest_int("patch_size", 8, 112, step=8)
+    image_size = 224
+    patch_size = trial.suggest_int("patch_size", 8, 112, step=8)
     num_patches = (image_size // patch_size) ** 2
     if num_patches in  [0,1,2,3]: 
         print("Too little patches per image !")
@@ -38,13 +33,12 @@ def main(trial,args):
     # batch size should depend oon num_patches by 
     batch_size = 128 // (num_patches)
     if batch_size == 0:
-        print("Too many patches per image !")
-        raise optuna.exceptions.TrialPruned()
+        batch_size = 1
     # check if trial already exists - running or complete or pruned  - if failed it should run again
     for previous_trial in trial.study.trials[:-1]:
-        if (previous_trial.state == TrialState.RUNNING or previous_trial.state == TrialState.COMPLETE  or previous_trial.state == TrialState.PRUNED) and trial.params == previous_trial.params:
-            print(f"Duplicated trial: {trial.params}")
-            raise optuna.exceptions.TrialPruned()
+         if (previous_trial.state == TrialState.RUNNING ) and trial.params == previous_trial.params:
+             print(f"Duplicated trial already Ran: {trial.params}")
+             raise optuna.exceptions.TrialPruned()
     if num_patches <10:
         batch_size = batch_size // 2
     if patch_size > 80 and num_patches > 10 :
@@ -143,7 +137,7 @@ if __name__ == "__main__":
     torch.backends.cudnn.deterministic = True
 
     # set sampler
-    sampler=optuna.samplers.NSGAIISampler(seed=22)
+    sampler=optuna.samplers.NSGAIISampler(seed=12, population_size=10,mutation_prob=0.2)
 
     # inin fake args
     parser = argparse.ArgumentParser(description=f"fullpipline Optuna ")

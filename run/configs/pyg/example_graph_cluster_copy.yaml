@@ -28,7 +28,7 @@ gnn:
   stage_type: skipconcat
   batchnorm: True
   act: prelu
-  dropout: 0.3
+  dropout: 0.2
   agg: mean
   normalize_adj: False
 optim:
