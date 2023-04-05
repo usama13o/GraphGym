@@ -24,12 +24,14 @@ graphgym/init.py
 graphgym/loader.py
 graphgym/loader_pyg.py
 graphgym/logger.py
+graphgym/logger_optuna.py
 graphgym/loss.py
 graphgym/model_builder.py
 graphgym/model_builder_pyg.py
 graphgym/optimizer.py
 graphgym/register.py
 graphgym/train.py
+graphgym/train_optuna.py
 graphgym/train_pyg.py
 graphgym.egg-info/PKG-INFO
 graphgym.egg-info/SOURCES.txt
@@ -100,6 +102,7 @@ run/__init__.py
 run/agg_batch.py
 run/configs_gen.py
 run/main.py
+run/main_optune.py
 run/main_pyg.py
 run/parallel.sh
 run/run_batch.sh

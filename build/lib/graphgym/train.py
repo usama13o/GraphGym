@@ -7,7 +7,7 @@ from graphgym.checkpoint import clean_ckpt, load_ckpt, save_ckpt
 from graphgym.config import cfg
 from graphgym.loss import compute_loss
 from graphgym.utils.epoch import is_ckpt_epoch, is_eval_epoch
-import optuna
+
 
 def train_epoch(logger, loader, model, optimizer, scheduler):
     model.train()
@@ -37,7 +37,6 @@ def eval_epoch(logger, loader, model):
     for batch in loader:
         batch.to(torch.device(cfg.device))
         pred, true = model(batch)
-        pred=pred[:true.shape[0]]
         loss, pred_score = compute_loss(pred, true)
         logger.update_stats(true=true.detach().cpu(),
                             pred=pred_score.detach().cpu(),
@@ -48,7 +47,7 @@ def eval_epoch(logger, loader, model):
         time_start = time.time()
 
 
-def train(loggers, loaders, model, optimizer, scheduler,trial):
+def train(loggers, loaders, model, optimizer, scheduler):
     r"""
     The core training pipeline
 
@@ -76,22 +75,11 @@ def train(loggers, loaders, model, optimizer, scheduler,trial):
             for i in range(1, num_splits):
                 eval_epoch(loggers[i], loaders[i], model)
                 loggers[i].write_epoch(cur_epoch)
-                task_stats = loggers[i].task_stats
-                loggers[i].reset()
         if is_ckpt_epoch(cur_epoch):
             save_ckpt(model, optimizer, scheduler, cur_epoch)
-        # Handle pruning based on the intermediate value.
-        if trial is not None:
-            trial.report(task_stats['accuracy'] , cur_epoch)
-            if trial.should_prune():
-                raise optuna.TrialPruned()
-        
-        
     for logger in loggers:
         logger.close()
     if cfg.train.ckpt_clean:
         clean_ckpt()
 
     logging.info('Task done, results saved in {}'.format(cfg.out_dir))
-
-    return task_stats['accuracy']

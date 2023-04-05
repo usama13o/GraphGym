@@ -37,7 +37,6 @@ def eval_epoch(logger, loader, model):
     for batch in loader:
         batch.to(torch.device(cfg.device))
         pred, true = model(batch)
-        pred=pred[:true.shape[0]]
         loss, pred_score = compute_loss(pred, true)
         logger.update_stats(true=true.detach().cpu(),
                             pred=pred_score.detach().cpu(),

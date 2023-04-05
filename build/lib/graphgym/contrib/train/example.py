@@ -6,8 +6,9 @@ import torch
 from graphgym.checkpoint import clean_ckpt, load_ckpt, save_ckpt
 from graphgym.config import cfg
 from graphgym.loss import compute_loss
+from graphgym.register import register_train
 from graphgym.utils.epoch import is_ckpt_epoch, is_eval_epoch
-import optuna
+
 
 def train_epoch(logger, loader, model, optimizer, scheduler):
     model.train()
@@ -16,7 +17,6 @@ def train_epoch(logger, loader, model, optimizer, scheduler):
         optimizer.zero_grad()
         batch.to(torch.device(cfg.device))
         pred, true = model(batch)
-        pred=pred[:true.shape[0]]
         loss, pred_score = compute_loss(pred, true)
         loss.backward()
         optimizer.step()
@@ -30,14 +30,12 @@ def train_epoch(logger, loader, model, optimizer, scheduler):
     scheduler.step()
 
 
-@torch.no_grad()
 def eval_epoch(logger, loader, model):
     model.eval()
     time_start = time.time()
     for batch in loader:
         batch.to(torch.device(cfg.device))
         pred, true = model(batch)
-        pred=pred[:true.shape[0]]
         loss, pred_score = compute_loss(pred, true)
         logger.update_stats(true=true.detach().cpu(),
                             pred=pred_score.detach().cpu(),
@@ -48,18 +46,7 @@ def eval_epoch(logger, loader, model):
         time_start = time.time()
 
 
-def train(loggers, loaders, model, optimizer, scheduler,trial):
-    r"""
-    The core training pipeline
-
-    Args:
-        loggers: List of loggers
-        loaders: List of loaders
-        model: GNN model
-        optimizer: PyTorch optimizer
-        scheduler: PyTorch learning rate scheduler
-
-    """
+def train_example(loggers, loaders, model, optimizer, scheduler):
     start_epoch = 0
     if cfg.train.auto_resume:
         start_epoch = load_ckpt(model, optimizer, scheduler)
@@ -76,17 +63,8 @@ def train(loggers, loaders, model, optimizer, scheduler,trial):
             for i in range(1, num_splits):
                 eval_epoch(loggers[i], loaders[i], model)
                 loggers[i].write_epoch(cur_epoch)
-                task_stats = loggers[i].task_stats
-                loggers[i].reset()
         if is_ckpt_epoch(cur_epoch):
             save_ckpt(model, optimizer, scheduler, cur_epoch)
-        # Handle pruning based on the intermediate value.
-        if trial is not None:
-            trial.report(task_stats['accuracy'] , cur_epoch)
-            if trial.should_prune():
-                raise optuna.TrialPruned()
-        
-        
     for logger in loggers:
         logger.close()
     if cfg.train.ckpt_clean:
@@ -94,4 +72,5 @@ def train(loggers, loaders, model, optimizer, scheduler,trial):
 
     logging.info('Task done, results saved in {}'.format(cfg.out_dir))
 
-    return task_stats['accuracy']
+
+register_train('example', train_example)

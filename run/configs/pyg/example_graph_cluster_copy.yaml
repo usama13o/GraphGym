@@ -3,7 +3,7 @@ dataset:
   format: PyG
   name: cluster
   task: graph
-  task_type: classification
+  task_type: classification_multi
   node_encoder: False
   node_encoder_name: Atom
   edge_encoder: False
@@ -24,7 +24,7 @@ gnn:
   layers_mp: 1
   layers_post_mp: 2
   dim_inner: 256
-  layer_type: generaledgeconv
+  layer_type: modgeneraledgeconv
   stage_type: skipconcat
   batchnorm: True
   act: prelu
@@ -34,4 +34,4 @@ gnn:
 optim:
   optimizer: adam
   base_lr: 0.01
-  max_epoch: 600
+  max_epoch: 300

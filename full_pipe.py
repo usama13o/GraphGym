@@ -18,7 +18,7 @@ from optuna.trial import TrialState
 
 def main(trial,args):
     
-    #withc to suggest categorical of only two ints 28 and 224
+    #withc to suggest categorical of only two ints 28 and 224 python projects\GraphGym\full_pipe.py --dataset dermamnist --tag "parallel-4"
     image_size = 224
     patch_size = trial.suggest_int("patch_size", 8, 112, step=8)
     num_patches = (image_size // patch_size) ** 2
@@ -29,7 +29,7 @@ def main(trial,args):
     num_nodes = trial.suggest_int("num_nodes", 4, 224, step=4)
     # numer of nodes should be less than the maximum number of patches
 
-    dataset = "pathmnist"
+    dataset = args.dataset
     # batch size should depend oon num_patches by 
     batch_size = 128 // (num_patches)
     if batch_size == 0:
@@ -46,9 +46,9 @@ def main(trial,args):
     print(f"Trial run with \n image_size: {image_size}, patch_size: {patch_size}, num_nodes: {num_nodes}, batch_size: {batch_size}")
     # run vae_pipe.py 
     import subprocess
-    subprocess.run(["python", "/home/uz1/projects/GCN/vae_pipe.py", "--img_size", str(image_size), "--patch_size", str(patch_size), "--batch_size", str(batch_size),"-use_pretrain","True","-k",str(num_nodes)])
+    subprocess.run(["python", r"C:\Users\Usama\projects\GCNs\vae_pipe.py", "--img_size", str(image_size), "--patch_size", str(patch_size), "--batch_size", str(batch_size),"-use_pretrain","True","-k",str(num_nodes),"--dataset", str(dataset)])
     # run gen_graph.py
-    out = subprocess.run(["python", "/home/uz1/projects/GCN/gen_graphs.py", "-size", str(image_size), "--dataset", str(dataset),"--k",str(num_nodes),"--batch_size", str(batch_size),"--patch_size", str(patch_size)],capture_output=True)
+    out = subprocess.run(["python", r"C:\Users\Usama\projects\GCNs\gen_graphs.py", "-size", str(image_size), "--dataset", str(dataset),"--k",str(num_nodes),"--batch_size", str(batch_size),"--patch_size", str(patch_size)],capture_output=True)
 
     # check out code
     print(out.stdout.decode("utf-8"))
@@ -57,15 +57,15 @@ def main(trial,args):
         raise optuna.exceptions.TrialPruned()
 
     # run graphgym - on three different cfgs with graph generated above 
-    g_data_path = f"/home/uz1/projects/GCN/graph_data/graph-data---{dataset}-{patch_size}-{num_nodes}-{image_size}-UC_False.h5" 
-    MAIN = "/home/uz1/projects/GCN/GraphGym/run/main.py"
-    args.cfg_file = "/home/uz1/projects/GCN/GraphGym/run/configs/pyg/example_graph_cluster_copy.yaml"
+    g_data_path = rf"C:\Users\Usama\data\graph-data---{dataset}-{patch_size}-{num_nodes}-{image_size}-UC_False.h5" 
+    MAIN = r"C:\Users\Usama\projects\GraphGym\run\main.py"
+    args.cfg_file = r"C:\Users\Usama\projects\GraphGym\run\configs\pyg\example_graph_cluster_copy.yaml"
 
     load_cfg(cfg, args)
     cfg.dataset.dir = g_data_path
     # run graphgym on cf
     cfg.gnn.layer_type = "modgeneraledgeconv"
-
+    cfg.share.dim_out= 9 if dataset == "pathmnist" else 7
     set_run_dir(cfg.out_dir)
     setup_printing()
     # Set configurations for each run
@@ -87,35 +87,8 @@ def main(trial,args):
     # Start training
     acc1 = train(loggers, loaders, model, optimizer, scheduler, trial)
 
-    # run graphgym on cfg2
-    cfg.gnn.layer_type = "sageconv"
-    model = create_model()
-    optimizer = create_optimizer(model.parameters())
-    scheduler = create_scheduler(optimizer)
-    # Print model info
-    logging.info(model)
-    logging.info(cfg)
-    cfg.params = params_count(model)
-    logging.info('Num parameters: %s', cfg.params)
-    # Start training
-    acc2 = train(loggers, loaders, model, optimizer, scheduler, trial)
-    
-    # run graphgym on 
-    cfg.gnn.layer_type = "gatconv"
-    model = create_model()
-    optimizer = create_optimizer(model.parameters())
-    scheduler = create_scheduler(optimizer)
-    # Print model info
-    logging.info(model)
-    logging.info(cfg)
-    cfg.params = params_count(model)
-    logging.info('Num parameters: %s', cfg.params)
-    # Start training
-    acc3 = train(loggers, loaders, model, optimizer, scheduler, trial)
-    
     # get accuracy average - make sure they're all floats
-    acc = (float(acc1) + float(acc2) + float(acc3)) / 3
-    return acc
+    return acc1
 
 
 
@@ -137,7 +110,7 @@ if __name__ == "__main__":
     torch.backends.cudnn.deterministic = True
 
     # set sampler
-    sampler=optuna.samplers.NSGAIISampler(seed=12, population_size=10,mutation_prob=0.2)
+    sampler=optuna.samplers.TPESampler(seed=44)
 
     # inin fake args
     parser = argparse.ArgumentParser(description=f"fullpipline Optuna ")
@@ -163,5 +136,5 @@ if __name__ == "__main__":
     # Run training
     study.optimize(
     lambda trial: main(trial,args),
-    n_trials=100,
+    n_trials=200,
     )

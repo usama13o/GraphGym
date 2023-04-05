@@ -35,18 +35,11 @@ def compute_loss(pred, true):
         # multiclass
         if pred.ndim > 1 and true.ndim == 1:
             pred = F.log_softmax(pred, dim=-1)
-            try:
-                return F.nll_loss(pred, true.long()), pred
-            except:
-                return F.nll_loss(pred[:true.shape[0]],true.long()),pred
+            return F.nll_loss(pred, true), pred
         # binary or multilabel
         else:
             true = true.float()
-        try:
-                return bce_loss(pred, true), torch.sigmoid(pred)
-        except:
-                return bce_loss(pred[:true.shape[0]],true),torch.sigmoid(pred)
-
+            return bce_loss(pred, true), torch.sigmoid(pred)
     elif cfg.model.loss_fun == 'mse':
         true = true.float()
         return mse_loss(pred, true), pred
